@@ -884,6 +884,7 @@ dependencies = [
  "esp-println",
  "esp32c3 0.26.0",
  "log",
+ "paste",
  "static_cell",
 ]
 
