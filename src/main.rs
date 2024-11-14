@@ -26,9 +26,32 @@ async fn main(_spawner: Spawner) {
 
     let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
     esp_hal_embassy::init(timg0.timer0);
-    let apb_saradc = unsafe { &*APB_SARADC::PTR };
+
+    // TRY TO: regi2c_saradc_enable
+    let rtc_cntl = unsafe { &*esp32c3::RTC_CNTL::PTR };
+    let ana_conf = rtc_cntl.ana_conf();
+    ana_conf.modify(|_, w| w.reset_por_force_pd().clear_bit().sar_i2c_pu().bit(true));
+
+    let system = unsafe { &*esp32c3::SYSTEM::PTR };
+
+    // temperature_sensor_ll_bus_clk_enable
+    system
+        .perip_clk_en1()
+        .modify(|_, w| w.tsens_clk_en().bit(true));
+    system
+        .perip_rst_en1()
+        .modify(|_, w| w.tsens_rst().bit(true));
+    system
+        .perip_rst_en1()
+        .modify(|_, w| w.tsens_rst().bit(false));
+
+    // temperature_sensor_ll_enable
+    let apb_saradc = unsafe { &*esp32c3::APB_SARADC::PTR };
     apb_saradc.tsens_ctrl().modify(|_, w| w.pu().bit(true));
-    apb_saradc.tsens_ctrl2().modify(|_, w| w.clk_sel().bit(false));
+    apb_saradc
+        .tsens_ctrl2()
+        .modify(|_, w| w.clk_sel().bit(true));
+
 
     let mut counter = 0;
     loop {
